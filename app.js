@@ -7,8 +7,7 @@ const app = express();
 const fs = require("fs");
 
 const ELEMENTS_LOOKUP = require("./elements-lookup.json");
-const ELEMENTS_JSON = require("./elements.json");
-const ELEMENTS = ELEMENTS_JSON["elements"]
+const ELEMENTS = require("./elements.json")["elements"];
 
 const NUMERIC_PROPERTIES = ["atomic_mass", "boil", "density", "melt", "molar_heat", "number", "period"];
 const STRING_PROPERTIES  = ["name", "appearance", "category", "phase", "symbol"];
@@ -16,9 +15,9 @@ const STRING_PROPERTIES  = ["name", "appearance", "category", "phase", "symbol"]
 const CLIENT_ERR_CODE = 400;
 
 // Search functions
-function searchByKeyValue(key, value) {
+function searchByKeyValue(key, value, elements=ELEMENTS) {
   let result = [];
-  for (let elem of ELEMENTS) {
+  for (let elem of elements) {
     if (elem[key] === value) {
       result.push(elem);
     }
@@ -26,9 +25,9 @@ function searchByKeyValue(key, value) {
   return result;
 }
 
-function searchByKeyRange(key, minValue, maxValue) {
+function searchByKeyRange(key, minValue, maxValue, elements=ELEMENTS) {
   let result = [];
-  for (let elem of ELEMENTS) {
+  for (let elem of elements) {
     const value = parseFloat(elem[key])
     if (value >= minValue && value <= maxValue) {
       result.push(elem);
@@ -38,18 +37,37 @@ function searchByKeyRange(key, minValue, maxValue) {
 }
 
 function searchElement(req, res, next) {
-  res.type("json");
-  const name = req.query["name"];
-  if (name) {
-    res.send(ELEMENTS_LOOKUP[name]);
+  let elem = req.params["element"];
+  let err;
+  if (!elem) {
+    err = Error("Missing required element parameter.");
+    next(err);
   } else {
-    res.status(400).send("Missing required name parameter");
+    if (isNaN(elem)) {
+      res.type("json");
+      res.send(ELEMENTS_LOOKUP[elem]);
+    }
+    // if passed in element atomic number
+    else {
+      elem = parseFloat(elem);
+      if (elem < 1 || elem > 119) {
+        err = Error("Element atomic number is out of range.");
+        next(err);
+      } else if (!Number.isInteger(elem)) {
+        err = Error("Element atomic number must be an integer.");
+        next(err);
+      } else {
+        res.type("json");
+        res.send(ELEMENTS[elem-1]);
+      }
+    }
   }
 }
 
 // sorting functions
-function sortByKey(key, dir=1) {
-  let result = [...ELEMENTS];
+function sortByKey(key, dir=1, elements=ELEMENTS) {
+  // make a copy of elements
+  let result = [...elements];
   result.sort((a, b) => {
     return (a[key] - b[key])*dir;
   });
@@ -65,49 +83,52 @@ function checkParameters(req, res, next) {
   let attrs = req.query["attr"];
   let values = req.query["value"];
   let sort = req.query["sort"];
-  let dir = req.query["dir"];
   let err;
 
   // Err #1. missing values
   if (attrs && !values) {
-    err = Error("Missing query values.");
+    err = Error("Missing required value query parameter when attr is passed.");
   } 
   // Err #2. missing attributes
   else if (!attrs && values) {
-    err = Error("Missing query attributes.");
+    err = Error("Missing required attr query parameter when value is passed.");
   } 
   // if both attrs and values are present
   else if (attrs && values) {
     attrs = attrs.split(" ");
     values = values.split(" ");
-    // Err #3. attr and value length mismatched
+    // Err #3. attrs and values length mismatched
     if (attrs.length !== values.length) {
-      err = Error("Query attribute and values have mismatched length.");
-    }
-    for (let i = 0; i < attrs.length; i++) {
-      let attr = attrs[i]
-      let value = values[i].split(",")
-      // Err #4. invalid attributes
-      if (!NUMERIC_PROPERTIES.includes(attr) && !STRING_PROPERTIES.includes(attr)) {
-        err = Error("Invalid query attributes.");
-      } else {
-        // Err #5. invalid values
-        if (value.length > 2) {
-          err = Error("Invalid query values.");
-        } 
-        else if (value.length == 2) {
-          // Err #6. unrangable attribute
-          if(!NUMERIC_PROPERTIES.includes(attr)) {
-            err = Error("Query attribute is unrangable.");
-          }
-          // Err #7. non-numerical range
-          else if (isNaN(value[0] || isNaN(value[1]))) {
-            err = Error("Query value range is not numerical.");
+      err = Error("Attr and value query parameters have mismatched length.");
+    } 
+    // if attr and values have the same length
+    else {
+      for (let i = 0; i < attrs.length; i++) {
+        let attr = attrs[i]
+        let value = values[i].split(",")
+        // Err #4. invalid attributes
+        if (!NUMERIC_PROPERTIES.includes(attr) && !STRING_PROPERTIES.includes(attr)) {
+          err = Error("Attr query parameter invalid.");
+        } else {
+          // Err #5. invalid values
+          if (value.length > 2) {
+            err = Error("Value query parameter has invalid length.");
+          } 
+          else if (value.length == 2) {
+            // Err #6. unrangable attribute
+            if(!NUMERIC_PROPERTIES.includes(attr)) {
+              err = Error("Attr query parameter is not numerical when a value range is passed.");
+            }
+            // Err #7. non-numerical range
+            else if (isNaN(value[0] || isNaN(value[1]))) {
+              err = Error("Value query parameter is not numerical when a value range is passed.");
+            }
           }
         }
       }
     }
   }
+  // if neither attrs nor values is present
   else {
     // Err #8. no query parameter 
     if (!sort) {
@@ -128,9 +149,39 @@ function checkParameters(req, res, next) {
   }
 }
 
-function outputTest(req, res, next) {
-  res.type("text");
-  res.send("SUCCESS");
+function search(req, res, next) {
+  let attrs = req.query["attr"];
+  let values = req.query["value"];
+  let sort = req.query["sort"];
+  let dir = req.query["dir"];
+  attrs = attrs.split(" ");
+  values = values.split(" ");
+  let elements = ELEMENTS;
+
+  // search by attributes and values passed in
+  for (let i = 0; i < attrs.length; i++) {
+    let attr = attrs[i]
+    let value = values[i].split(",")
+    // if search attr by a single value
+    if (value.length === 1) {
+      elements = searchByKeyValue(attr, value[0], elements);
+    } else {
+      elements = searchByKeyRange(attr, value[0], value[1], elements);
+    }
+  }
+
+  // sort by attribute and direction passed in
+  if (sort) {
+    // only sort in the descending order if passed dir is -1, 
+    // otherwise sort in the ascending order
+    if (parseInt(dir) !== -1) {
+      dir = 1;
+    }
+    elements = sortByKey(sort, dir, elements);
+  }
+
+  res.type("json");
+  res.send(elements);
 }
 
 function errorHandler(err, req, res, next) {
@@ -138,56 +189,20 @@ function errorHandler(err, req, res, next) {
   res.send(err.message);
 }
 
-
-app.get("/test", checkParameters, outputTest);
-
+app.get("/search", checkParameters, search);
+app.get("/elements/:element", searchElement);
 app.use(errorHandler);
 
-// Endpoints
-// TO-DO: validate query parameters and search accordingly
-// app.get("/search", (req, res, next) => {
-//   if (req.query["name"])
-// });
-app.get("/search", searchElement);
-
-app.get("/sort", (req, res, next) => {
-  const key = req.query["key"];
-  const dir = req.query["dir"];
-  const result = sortByKey(key, dir);
-  res.type("JSON");
-  res.send(result);
-})
-
-// Start the app on an open port!
+// Start the app on an open port
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
   console.log(`Listening on port ${PORT}...`);
 });
 
 
-// api.com/element/:elementname
-// api.com/search?attr=boil&value=100
-// api.com/search?attr=boil&value=100,200&sort=atomic_mass&dir=-1
-// api.com/search?attr=boil+period&value=100,200+100,200&sort=atomic_mass&dir=-1
-
-// 400s:
-// 1. attr and value different length
-// 1. attr missing
-// 2. attr invalid
-// 3. unrangeable attr if range is given
-// 4. sort invalid
-// 5. sort attr is unrangable
-// 6. range is not complete
-// 7. 
-
-// app.get("/search", helper, actualSearch, errorHandler)
-// helper(req, res, next) {
-//   ajfafsa
-// if (err):
-//   next (err)
-// else:
-//   next()
-//   next(err);
-// }
-
-// 100 < boil < 200
+// some example use cases
+// localhost:8000/element/oxygen
+// localhost:8000/element/15
+// localhost:8000/search?attr=boil&value=100
+// localhost:8000/search?attr=boil&value=100,200&sort=atomic_mass
+// localhost:8000/search?attr=boil+period&value=100,200+0,10&sort=atomic_mass&dir=-1
