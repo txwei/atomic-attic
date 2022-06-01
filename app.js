@@ -2,6 +2,10 @@
 // Loading required modules
 const express = require("express");
 const app = express();
+
+let cors = require("cors");
+app.use(cors());
+
 // app.use(express.static("public"));
 const fs = require("fs");
 const ELEMENTS_LOOKUP = require("./elements-lookup.json");
@@ -9,7 +13,6 @@ const ELEMENTS_JSON = require("./elements.json");
 const ELEMENTS = ELEMENTS_JSON["elements"]
 
 const PROPERTIES = ["name", "appearance", "atomic_mass", "boil", "density"];
-
 
 // Search functions
 function searchByKeyValue(key, value) {
