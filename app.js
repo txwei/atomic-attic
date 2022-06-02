@@ -2,9 +2,18 @@
 // Loading required modules
 const express = require("express");
 const app = express();
+<<<<<<< HEAD
 app.use(express.static("public"));
 let cors = require("cors");
 app.use(cors());
+=======
+
+let cors = require("cors");
+app.use(cors());
+
+// app.use(express.static("public"));
+const fs = require("fs");
+>>>>>>> f2d7fe34904c50de66bfed2e601f6d24301d7556
 
 const ELEMENTS_LOOKUP = require("./elements-lookup.json");
 const ELEMENTS = require("./elements.json")["elements"];
