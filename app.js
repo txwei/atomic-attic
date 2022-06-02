@@ -2,8 +2,8 @@
 // Loading required modules
 const express = require("express");
 const app = express();
+const cors = require("cors");
 app.use(express.static("public"));
-let cors = require("cors");
 app.use(cors());
 
 const ELEMENTS_LOOKUP = require("./elements-lookup.json");
@@ -14,26 +14,17 @@ const STRING_PROPERTIES  = ["name", "appearance", "category", "phase", "symbol"]
 
 const CLIENT_ERR_CODE = 400;
 
-// Search functions
-function searchByKeyValue(key, value, elements=ELEMENTS) {
-  let result = [];
-  for (let elem of elements) {
-    if (elem[key].toLowerCase() === value.toLowerCase()) {
-      result.push(elem);
-    }
-  }
-  return result;
-}
+// GET endpoints
+app.get("/elements", getAllElements);
+app.get("/element/:element", searchElement);
+app.get("/search", checkParameters, search);
+app.use(errorHandler);
 
-function searchByKeyRange(key, minValue, maxValue, elements=ELEMENTS) {
-  let result = [];
-  for (let elem of elements) {
-    const value = parseFloat(elem[key])
-    if (value >= minValue && value <= maxValue) {
-      result.push(elem);
-    }
-  }
-  return result;
+// -------------------- Searching Functions for Endpoints -------------------- //
+function getAllElements(req, res, next) {
+  let result = simplifyOutput(ELEMENTS);
+  res.type("json");
+  res.send(result);
 }
 
 function searchElement(req, res, next) {
@@ -65,7 +56,68 @@ function searchElement(req, res, next) {
   }
 }
 
-// sorting functions
+function search(req, res, next) {
+  let attrs = req.query["attr"];
+  let values = req.query["value"];
+  let sort = req.query["sort"];
+  let dir = req.query["dir"];
+  let elements = ELEMENTS;
+
+  if (attrs) {
+    attrs = attrs.split(" ");
+    values = values.split(" ");
+  
+    // search by attributes and values passed in
+    for (let i = 0; i < attrs.length; i++) {
+      let attr = attrs[i]
+      let value = values[i].split(",")
+      // if search attr by a single value
+      if (value.length === 1) {
+        elements = searchByKeyValue(attr, value[0], elements);
+      } else {
+        elements = searchByKeyRange(attr, value[0], value[1], elements);
+      }
+    }
+  }
+
+  // sort by attribute and direction passed in
+  if (sort) {
+    // only sort in the descending order if passed dir is -1, 
+    // otherwise sort in the ascending order
+    if (parseInt(dir) !== -1) {
+      dir = 1;
+    }
+    elements = sortByKey(sort, dir, elements);
+  }
+
+  // simplify the output json to contain only basic information
+  elements = simplifyOutput(elements);
+  res.type("json");
+  res.send(elements);
+}
+
+function searchByKeyValue(key, value, elements=ELEMENTS) {
+  let result = [];
+  for (let elem of elements) {
+    if (elem[key].toLowerCase() === value.toLowerCase()) {
+      result.push(elem);
+    }
+  }
+  return result;
+}
+
+function searchByKeyRange(key, minValue, maxValue, elements=ELEMENTS) {
+  let result = [];
+  for (let elem of elements) {
+    const value = parseFloat(elem[key])
+    if (value >= minValue && value <= maxValue) {
+      result.push(elem);
+    }
+  }
+  return result;
+}
+
+// -------------------- Sorting Functions for Endpoints -------------------- //
 function sortByKey(key, dir=1, elements=ELEMENTS) {
   // make a copy of elements
   let result = [...elements];
@@ -77,8 +129,10 @@ function sortByKey(key, dir=1, elements=ELEMENTS) {
   let nullArr = result.filter((a) => a[key] === null);
   result = result.filter((a) => a[key] !== null);
   result = result.concat(nullArr);
-  return result.slice(0,3);
+  return result;
 }
+
+// -------------------- Helper Functions for Endpoints -------------------- //
 
 function checkParameters(req, res, next) {
   let attrs = req.query["attr"];
@@ -150,70 +204,31 @@ function checkParameters(req, res, next) {
   }
 }
 
-function search(req, res, next) {
-  let attrs = req.query["attr"];
-  let values = req.query["value"];
-  let sort = req.query["sort"];
-  let dir = req.query["dir"];
-  attrs = attrs.split(" ");
-  values = values.split(" ");
-  let elements = ELEMENTS;
-
-  // search by attributes and values passed in
-  for (let i = 0; i < attrs.length; i++) {
-    let attr = attrs[i]
-    let value = values[i].split(",")
-    // if search attr by a single value
-    if (value.length === 1) {
-      elements = searchByKeyValue(attr, value[0], elements);
-    } else {
-      elements = searchByKeyRange(attr, value[0], value[1], elements);
-    }
-  }
-
-  // sort by attribute and direction passed in
-  if (sort) {
-    // only sort in the descending order if passed dir is -1, 
-    // otherwise sort in the ascending order
-    if (parseInt(dir) !== -1) {
-      dir = 1;
-    }
-    elements = sortByKey(sort, dir, elements);
-  }
-
-  res.type("json");
-  res.send(elements);
-}
-
-function getAllElements(req, res, next) {
+function simplifyOutput(elements) {
   let result = [];
-  for (let elem of ELEMENTS) {
+  for (let elem of elements) {
     let json = {};
     json.name = elem.name;
     json.number = elem.number;
+    let num = elem.number;
+    num = num.toString().padStart(2, '0');
+    json.img = `imgs/${num}.png`;
     result.push(json);
   }
-  res.type("json");
-  res.send(result);
+  return result;
 }
 
 function errorHandler(err, req, res, next) {
+  console.log(err);
   res.type("text");
   res.send(err.message);
 }
-
-app.get("/search", checkParameters, search);
-app.get("/element/:element", searchElement);
-app.get("/elements", getAllElements);
-
-app.use(errorHandler);
 
 // Start the app on an open port
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
   console.log(`Listening on port ${PORT}...`);
 });
-
 
 // some example use cases
 // localhost:8000/elements
