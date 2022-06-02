@@ -35,9 +35,19 @@ function searchElement(req, res, next) {
     next(err);
   } 
   else {
+    // if passed in a string
     if (isNaN(elem)) {
       res.type("json");
-      res.send(ELEMENTS_LOOKUP[elem]);
+      // if passed in element full name
+      if (elem.length > 2) {
+        res.send(ELEMENTS_LOOKUP[elem.toLowerCase()]);
+      } 
+      // if passed in element symbol
+      else {
+        const result = searchByKeyValue("symbol", elem);
+        res.send(result[0]);
+      }
+      // 
     }
     // if passed in element atomic number
     else {
