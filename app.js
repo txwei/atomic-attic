@@ -1,10 +1,10 @@
 "use strict";
-const { application } = require("express");
 // Loading required modules
 const express = require("express");
 const app = express();
-// app.use(express.static("public"));
-const fs = require("fs");
+app.use(express.static("public"));
+let cors = require("cors");
+app.use(cors());
 
 const ELEMENTS_LOOKUP = require("./elements-lookup.json");
 const ELEMENTS = require("./elements.json")["elements"];
@@ -18,7 +18,7 @@ const CLIENT_ERR_CODE = 400;
 function searchByKeyValue(key, value, elements=ELEMENTS) {
   let result = [];
   for (let elem of elements) {
-    if (elem[key] === value) {
+    if (elem[key].toLowerCase() === value.toLowerCase()) {
       result.push(elem);
     }
   }
@@ -42,7 +42,8 @@ function searchElement(req, res, next) {
   if (!elem) {
     err = Error("Missing required element parameter.");
     next(err);
-  } else {
+  } 
+  else {
     if (isNaN(elem)) {
       res.type("json");
       res.send(ELEMENTS_LOOKUP[elem]);
@@ -184,13 +185,27 @@ function search(req, res, next) {
   res.send(elements);
 }
 
+function getAllElements(req, res, next) {
+  let result = [];
+  for (let elem of ELEMENTS) {
+    let json = {};
+    json.name = elem.name;
+    json.number = elem.number;
+    result.push(json);
+  }
+  res.type("json");
+  res.send(result);
+}
+
 function errorHandler(err, req, res, next) {
   res.type("text");
   res.send(err.message);
 }
 
 app.get("/search", checkParameters, search);
-app.get("/elements/:element", searchElement);
+app.get("/element/:element", searchElement);
+app.get("/elements", getAllElements);
+
 app.use(errorHandler);
 
 // Start the app on an open port
