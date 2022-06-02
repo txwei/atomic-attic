@@ -133,7 +133,6 @@ function sortByKey(key, dir=1, elements=ELEMENTS) {
 }
 
 // -------------------- Helper Functions for Endpoints -------------------- //
-
 function checkParameters(req, res, next) {
   let attrs = req.query["attr"];
   let values = req.query["value"];
@@ -210,9 +209,7 @@ function simplifyOutput(elements) {
     let json = {};
     json.name = elem.name;
     json.number = elem.number;
-    let num = elem.number;
-    num = num.toString().padStart(2, '0');
-    json.img = `imgs/${num}.png`;
+    json.img = elem.img;
     result.push(json);
   }
   return result;
