@@ -2,18 +2,9 @@
 // Loading required modules
 const express = require("express");
 const app = express();
-<<<<<<< HEAD
 app.use(express.static("public"));
 let cors = require("cors");
 app.use(cors());
-=======
-
-let cors = require("cors");
-app.use(cors());
-
-// app.use(express.static("public"));
-const fs = require("fs");
->>>>>>> f2d7fe34904c50de66bfed2e601f6d24301d7556
 
 const ELEMENTS_LOOKUP = require("./elements-lookup.json");
 const ELEMENTS = require("./elements.json")["elements"];
@@ -225,6 +216,7 @@ app.listen(PORT, () => {
 
 
 // some example use cases
+// localhost:8000/elements
 // localhost:8000/element/oxygen
 // localhost:8000/element/15
 // localhost:8000/search?attr=boil&value=100
