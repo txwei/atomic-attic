@@ -8,9 +8,10 @@ app.use(cors());
 
 const ELEMENTS_LOOKUP = require("./elements-lookup.json");
 const ELEMENTS = require("./elements.json")["elements"];
+const FAQ = require("./faq.json");
 
 const NUMERIC_PROPERTIES = ["atomic_mass", "boil", "density", "melt", "molar_heat", "number", "period"];
-const STRING_PROPERTIES  = ["name", "appearance", "category", "phase", "symbol"];
+const STRING_PROPERTIES = ["name", "appearance", "category", "phase", "symbol"];
 
 const CLIENT_ERR_CODE = 400;
 
@@ -18,9 +19,14 @@ const CLIENT_ERR_CODE = 400;
 app.get("/elements", getAllElements);
 app.get("/element/:element", searchElement);
 app.get("/search", checkParameters, search);
+app.get("/faqs", getFAQs);
 app.use(errorHandler);
 
 // -------------------- Searching Functions for Endpoints -------------------- //
+function getFAQs(req, res, next) {
+  res.send(FAQ)
+}
+
 function getAllElements(req, res, next) {
   let result = simplifyOutput(ELEMENTS);
   res.type("json");
@@ -33,7 +39,7 @@ function searchElement(req, res, next) {
   if (!elem) {
     err = Error("Missing required element parameter.");
     next(err);
-  } 
+  }
   else {
     // if passed in a string
     if (isNaN(elem)) {
@@ -41,7 +47,7 @@ function searchElement(req, res, next) {
       // if passed in element full name
       if (elem.length > 2) {
         res.send(ELEMENTS_LOOKUP[elem.toLowerCase()]);
-      } 
+      }
       // if passed in element symbol
       else {
         const result = searchByKeyValue("symbol", elem);
@@ -60,7 +66,7 @@ function searchElement(req, res, next) {
         next(err);
       } else {
         res.type("json");
-        res.send(ELEMENTS[elem-1]);
+        res.send(ELEMENTS[elem - 1]);
       }
     }
   }
@@ -76,7 +82,7 @@ function search(req, res, next) {
   if (attrs) {
     attrs = attrs.split(" ");
     values = values.split(" ");
-  
+
     // search by attributes and values passed in
     for (let i = 0; i < attrs.length; i++) {
       let attr = attrs[i]
@@ -106,7 +112,7 @@ function search(req, res, next) {
   res.send(elements);
 }
 
-function searchByKeyValue(key, value, elements=ELEMENTS) {
+function searchByKeyValue(key, value, elements = ELEMENTS) {
   let result = [];
   for (let elem of elements) {
     if (elem[key].toLowerCase() === value.toLowerCase()) {
@@ -116,7 +122,7 @@ function searchByKeyValue(key, value, elements=ELEMENTS) {
   return result;
 }
 
-function searchByKeyRange(key, minValue, maxValue, elements=ELEMENTS) {
+function searchByKeyRange(key, minValue, maxValue, elements = ELEMENTS) {
   let result = [];
   for (let elem of elements) {
     const value = parseFloat(elem[key])
@@ -128,11 +134,11 @@ function searchByKeyRange(key, minValue, maxValue, elements=ELEMENTS) {
 }
 
 // -------------------- Sorting Functions for Endpoints -------------------- //
-function sortByKey(key, dir=1, elements=ELEMENTS) {
+function sortByKey(key, dir = 1, elements = ELEMENTS) {
   // make a copy of elements
   let result = [...elements];
   result.sort((a, b) => {
-    return (a[key] - b[key])*dir;
+    return (a[key] - b[key]) * dir;
   });
 
   // put null elements at the buttom
@@ -152,11 +158,11 @@ function checkParameters(req, res, next) {
   // Err #1. missing values
   if (attrs && !values) {
     err = Error("Missing required value query parameter when attr is passed.");
-  } 
+  }
   // Err #2. missing attributes
   else if (!attrs && values) {
     err = Error("Missing required attr query parameter when value is passed.");
-  } 
+  }
   // if both attrs and values are present
   else if (attrs && values) {
     attrs = attrs.split(" ");
@@ -164,7 +170,7 @@ function checkParameters(req, res, next) {
     // Err #3. attrs and values length mismatched
     if (attrs.length !== values.length) {
       err = Error("Attr and value query parameters have mismatched length.");
-    } 
+    }
     // if attr and values have the same length
     else {
       for (let i = 0; i < attrs.length; i++) {
@@ -177,10 +183,10 @@ function checkParameters(req, res, next) {
           // Err #5. invalid values
           if (value.length > 2) {
             err = Error("Value query parameter has invalid length.");
-          } 
+          }
           else if (value.length == 2) {
             // Err #6. unrangable attribute
-            if(!NUMERIC_PROPERTIES.includes(attr)) {
+            if (!NUMERIC_PROPERTIES.includes(attr)) {
               err = Error("Attr query parameter is not numerical when a value range is passed.");
             }
             // Err #7. non-numerical range
@@ -238,6 +244,7 @@ app.listen(PORT, () => {
 });
 
 // some example use cases
+// localhost:8000/faqs
 // localhost:8000/elements
 // localhost:8000/element/oxygen
 // localhost:8000/element/15
