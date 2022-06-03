@@ -158,7 +158,7 @@ function search(req, res, next) {
 function searchByKeyValue(key, value, elements = ELEMENTS) {
   let result = [];
   for (let elem of elements) {
-    if (elem[key].toLowerCase() === value.toLowerCase()) {
+    if (elem[key].toString().toLowerCase() === value.toLowerCase()) {
       result.push(elem);
     }
   }
