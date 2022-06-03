@@ -186,6 +186,16 @@ function searchByKeyRange(key, minValue, maxValue, elements = ELEMENTS) {
 }
 
 // -------------------- Sorting Functions for Endpoints -------------------- //
+
+/**
+ * This function sorts the elements based off of a specific key into largest to smallest or smallest
+ * to largest
+ * @param {Object} key - key to be sorted by
+ * @param {Number} dir - direction that we will be sorting by, +1 being higher to lower,
+ * -1 being lower to higher
+ * @param {Object} elements - list of elements to be sorted
+ * @returns {Number}
+ */
 function sortByKey(key, dir = 1, elements = ELEMENTS) {
   // make a copy of elements
   let result = [...elements];
@@ -201,6 +211,15 @@ function sortByKey(key, dir = 1, elements = ELEMENTS) {
 }
 
 // -------------------- Helper Functions for Endpoints -------------------- //
+
+/**
+ * This function checks if the parameters passed into the API request are valid
+ * and returns a specific error if it is not
+ * @param {Object} req - request
+ * @param {Object} res - response
+ * @param {Object} next - next
+ * @returns none
+ */
 function checkParameters(req, res, next) {
   let attrs = req.query["attr"];
   let values = req.query["value"];
@@ -280,6 +299,12 @@ function checkParameters(req, res, next) {
   }
 }
 
+/**
+ * This function strips our list of elements of all of the uneccesary details and returns
+ * a new Object list of only the elements symbol, name, and atomic number
+ * @param {Object} elements - list of elements
+ * @returns result
+ */
 function simplifyOutput(elements) {
   let result = [];
   for (let elem of elements) {
@@ -293,6 +318,15 @@ function simplifyOutput(elements) {
   return result;
 }
 
+/**
+ * This function handles the error for when a fetch request fails to access the
+ * API
+ * @param err - error
+ * @param {Object} req - request
+ * @param {Object} res - response
+ * @param {Object} next - next
+ * @returns none
+ */
 function errorHandler(err, req, res, next) {
   console.log(err);
   res.type("text");
@@ -304,12 +338,3 @@ const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
   console.log(`Listening on port ${PORT}...`);
 });
-
-// some example use cases
-// localhost:8000/faqs
-// localhost:8000/elements
-// localhost:8000/element/oxygen
-// localhost:8000/element/15
-// localhost:8000/search?attr=boil&value=100
-// localhost:8000/search?attr=boil&value=100,200&sort=atomic_mass
-// localhost:8000/search?attr=boil+period&value=100,200+0,10&sort=atomic_mass&dir=-1
