@@ -225,6 +225,7 @@ function simplifyOutput(elements) {
     let json = {};
     json.name = elem.name;
     json.number = elem.number;
+    json.symbol = elem.symbol;
     json.img = elem.img;
     result.push(json);
   }
