@@ -1,8 +1,13 @@
 "use strict";
 // Loading required modules
+const multer = require("multer");
 const express = require("express");
+const fs = require("fs/promises");
 const app = express();
 const cors = require("cors");
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json()); 
+app.use(multer().none());
 app.use(express.static("public"));
 app.use(cors());
 
@@ -14,13 +19,65 @@ const NUMERIC_PROPERTIES = ["atomic_mass", "boil", "density", "melt", "molar_hea
 const STRING_PROPERTIES = ["name", "appearance", "category", "phase", "symbol"];
 
 const CLIENT_ERR_CODE = 400;
+const SERVER_ERR_CODE = 500;
+const SERVER_ERROR = "Something is wrong with the server. Please try again later."
 
 // GET endpoints
 app.get("/elements", getAllElements);
 app.get("/element/:element", searchElement);
 app.get("/search", checkParameters, search);
-app.get("/faqs", getFAQs);
+app.get("/faqs", (req, res, next) => {
+  res.type("json");
+  res.send(FAQ);
+});
+
+// POST endpoint
+app.post("/contact", async (req, res, next) => {
+  let newMsg = processMsgParams(req.body.name, req.body.email, req.body.message);
+  if (!newMsg) {
+    res.status(CLIENT_ERR_CODE);
+    const err = Error("Missing required POST parameters for /contact: name, email, message.")
+    next(err);
+  }
+  try {
+    let messages = await fs.readFile("messages.json", "utf8");
+    messages = JSON.parse(messages);
+    messages.push(newMsg);
+    await fs.writeFile("messages.json", JSON.stringify(messages, null, 2), "utf8");
+    res.type("text");
+    res.send("Your message was received!");
+  } catch (err) {
+    res.status(SERVER_ERR_CODE);
+    err.message = SERVER_ERROR;
+    next(err);
+  }
+});
+
+// Add errorHandling to end of middleware stack
 app.use(errorHandler);
+
+/**
+ * Helper function for the /contact endpoint, processing required parameters and
+ * returning a JSON with information to store on the file system. If a parameter is
+ * missing, returns null (all are required).
+ * @param {String} name     - name of user
+ * @param {String} email    - email of user
+ * @param {String} message  - text message of user.
+ * @returns {Object} - JSON-formatted object with message information and timestamp of
+ * request.
+ */
+ function processMsgParams(name, email, message) {
+  let result = null;
+  if (name && email && message) {
+    result = {
+      "name" : name,
+      "email" : email,
+      "message" : message,
+      "timestamp" : new Date().toUTCString()
+    };
+  }
+  return result;
+}
 
 // -------------------- Searching Functions for Endpoints -------------------- //
 
@@ -32,7 +89,7 @@ app.use(errorHandler);
  * @returns none
  */
 function getFAQs(req, res, next) {
-  res.send(FAQ)
+
 }
 
 /**

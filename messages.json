@@ -1,0 +1,26 @@
+[
+  {
+    "name": "twei",
+    "email": "twei@caltech.edu",
+    "message": "a test message",
+    "timestamp": "Fri, 03 Jun 2022 07:40:59 GMT"
+  },
+  {
+    "name": "person 2",
+    "email": "some@caltech.edu",
+    "message": "this is the second test message",
+    "timestamp": "Fri, 03 Jun 2022 08:00:46 GMT"
+  },
+  {
+    "name": "test3",
+    "email": "test3@caltech.edu",
+    "message": "This is the third message",
+    "timestamp": "Fri, 03 Jun 2022 08:02:09 GMT"
+  },
+  {
+    "name": "test4",
+    "email": "test4@caltech.edu",
+    "message": "fourth message",
+    "timestamp": "Fri, 03 Jun 2022 08:03:05 GMT"
+  }
+]
