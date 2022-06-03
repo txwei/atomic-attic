@@ -23,16 +23,40 @@ app.get("/faqs", getFAQs);
 app.use(errorHandler);
 
 // -------------------- Searching Functions for Endpoints -------------------- //
+
+/**
+ * This function sends out the json response of the request from the FAQs json
+ * @param {Object} req - request
+ * @param {Object} res - response
+ * @param {Object} next - next
+ * @returns none
+ */
 function getFAQs(req, res, next) {
   res.send(FAQ)
 }
 
+/**
+ * This function sends out an object that contains the name, symbol, and atomic number of 
+ * every single element that we are selling
+ * @param {Object} req - request
+ * @param {Object} res - response
+ * @param {Object} next - next
+ * @returns none
+ */
 function getAllElements(req, res, next) {
   let result = simplifyOutput(ELEMENTS);
   res.type("json");
   res.send(result);
 }
 
+/**
+ * This function sends out the json response containing all of the details for
+ * the specific element that we are requesting from the API
+ * @param {Object} req - request
+ * @param {Object} res - response
+ * @param {Object} next - next
+ * @returns none
+ */
 function searchElement(req, res, next) {
   let elem = req.params["element"];
   let err;
@@ -44,17 +68,19 @@ function searchElement(req, res, next) {
     // if passed in a string
     if (isNaN(elem)) {
       res.type("json");
+
       // if passed in element full name
       if (elem.length > 2) {
         res.send(ELEMENTS_LOOKUP[elem.toLowerCase()]);
       }
+
       // if passed in element symbol
       else {
         const result = searchByKeyValue("symbol", elem);
         res.send(result[0]);
       }
-      // 
     }
+
     // if passed in element atomic number
     else {
       elem = parseFloat(elem);
@@ -72,6 +98,14 @@ function searchElement(req, res, next) {
   }
 }
 
+/**
+ * This function allows for us to search from a list of elements by a specific range
+ * such as boiling point of the element
+ * @param {Object} req - request
+ * @param {Object} res - response
+ * @param {Object} next - next
+ * @returns none
+ */
 function search(req, res, next) {
   let attrs = req.query["attr"];
   let values = req.query["value"];
@@ -87,6 +121,7 @@ function search(req, res, next) {
     for (let i = 0; i < attrs.length; i++) {
       let attr = attrs[i]
       let value = values[i].split(",")
+
       // if search attr by a single value
       if (value.length === 1) {
         elements = searchByKeyValue(attr, value[0], elements);
@@ -112,6 +147,14 @@ function search(req, res, next) {
   res.send(elements);
 }
 
+/**
+ * This function returns the groups of elements that are being searched by a key
+ * value pair 
+ * @param {Object} key - key we are using to search
+ * @param {String} value - value we are looking for
+ * @param {Object} elements - list of elements to search from
+ * @returns result
+ */
 function searchByKeyValue(key, value, elements = ELEMENTS) {
   let result = [];
   for (let elem of elements) {
@@ -122,6 +165,15 @@ function searchByKeyValue(key, value, elements = ELEMENTS) {
   return result;
 }
 
+/**
+ * This is similar to the KeyValueSearch except that now it takes in a range of values instead
+ * of a specific value
+ * @param {*} key - key we are searching with
+ * @param {*} minValue - min value of the range
+ * @param {*} maxValue - max value of the range
+ * @param {*} elements - list of elements we are searching with
+ * @returns result
+ */
 function searchByKeyRange(key, minValue, maxValue, elements = ELEMENTS) {
   let result = [];
   for (let elem of elements) {
@@ -159,36 +211,44 @@ function checkParameters(req, res, next) {
   if (attrs && !values) {
     err = Error("Missing required value query parameter when attr is passed.");
   }
+
   // Err #2. missing attributes
   else if (!attrs && values) {
     err = Error("Missing required attr query parameter when value is passed.");
   }
+
   // if both attrs and values are present
   else if (attrs && values) {
     attrs = attrs.split(" ");
     values = values.split(" ");
+
     // Err #3. attrs and values length mismatched
     if (attrs.length !== values.length) {
       err = Error("Attr and value query parameters have mismatched length.");
     }
+
     // if attr and values have the same length
     else {
       for (let i = 0; i < attrs.length; i++) {
         let attr = attrs[i]
         let value = values[i].split(",")
+
         // Err #4. invalid attributes
         if (!NUMERIC_PROPERTIES.includes(attr) && !STRING_PROPERTIES.includes(attr)) {
           err = Error("Attr query parameter invalid.");
         } else {
+
           // Err #5. invalid values
           if (value.length > 2) {
             err = Error("Value query parameter has invalid length.");
           }
           else if (value.length == 2) {
+
             // Err #6. unrangable attribute
             if (!NUMERIC_PROPERTIES.includes(attr)) {
               err = Error("Attr query parameter is not numerical when a value range is passed.");
             }
+
             // Err #7. non-numerical range
             else if (isNaN(value[0] || isNaN(value[1]))) {
               err = Error("Value query parameter is not numerical when a value range is passed.");
@@ -198,6 +258,7 @@ function checkParameters(req, res, next) {
       }
     }
   }
+
   // if neither attrs nor values is present
   else {
     // Err #8. no query parameter 
