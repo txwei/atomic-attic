@@ -82,17 +82,6 @@ app.use(errorHandler);
 // -------------------- Searching Functions for Endpoints -------------------- //
 
 /**
- * This function sends out the json response of the request from the FAQs json
- * @param {Object} req - request
- * @param {Object} res - response
- * @param {Object} next - next
- * @returns none
- */
-function getFAQs(req, res, next) {
-
-}
-
-/**
  * This function sends out an object that contains the name, symbol, and atomic number of 
  * every single element that we are selling
  * @param {Object} req - request
