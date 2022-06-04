@@ -36,7 +36,7 @@ app.post("/contact", async (req, res, next) => {
   let newMsg = processMsgParams(req.body.name, req.body.email, req.body.message);
   if (!newMsg) {
     res.status(CLIENT_ERR_CODE);
-    const err = Error("Missing required POST parameters for /contact: name, email, message.")
+    const err = Error("Missing required parameters for name, email, message.")
     next(err);
   }
   try {
@@ -45,7 +45,7 @@ app.post("/contact", async (req, res, next) => {
     messages.push(newMsg);
     await fs.writeFile("messages.json", JSON.stringify(messages, null, 2), "utf8");
     res.type("text");
-    res.send("Your message was received!");
+    res.send("Your message has been received!");
   } catch (err) {
     res.status(SERVER_ERR_CODE);
     err.message = SERVER_ERROR;
@@ -134,7 +134,7 @@ function searchElement(req, res, next) {
         err = Error("Element atomic number is out of range.");
         next(err);
       } else if (!Number.isInteger(elem)) {
-        err = Error("Element atomic number must be an integer.");
+        err = Error("Element atomic number is not an integer");
         next(err);
       } else {
         res.type("json");
@@ -316,7 +316,7 @@ function checkParameters(req, res, next) {
 
             // Err #7. non-numerical range
             else if (isNaN(value[0] || isNaN(value[1]))) {
-              err = Error("Value query parameter is not numerical when a value range is passed.");
+              err = Error("Value query parameter is not a number when a value range is passed.");
             }
           }
         }
@@ -328,13 +328,13 @@ function checkParameters(req, res, next) {
   else {
     // Err #8. no query parameter 
     if (!sort) {
-      err = Error("Missing query parameters.");
+      err = Error("Missing required at least one query parameter.");
     }
   }
   if (sort) {
     // Err #9. non-numerical sort
     if (!NUMERIC_PROPERTIES.includes(sort)) {
-      err = Error("Sort attribute is not numerical.");
+      err = Error("Sort query parameter is not numerical.");
     }
   }
   if (err) {
