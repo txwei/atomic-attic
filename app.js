@@ -13,6 +13,9 @@ app.use(cors());
 
 const ELEMENTS_LOOKUP = require("./elements-lookup.json");
 const ELEMENTS = require("./elements.json")["elements"];
+/*
+ * Data source: https://github.com/Bowserinator/Periodic-Table-JSON
+ */
 const FAQ = require("./faq.json");
 
 const NUMERIC_PROPERTIES = ["atomic_mass", "boil", "density", "melt", "molar_heat", "number", "period"];
@@ -374,7 +377,6 @@ function simplifyOutput(elements) {
  * @returns none
  */
 function errorHandler(err, req, res, next) {
-  console.log(err);
   res.type("text");
   res.send(err.message);
 }
